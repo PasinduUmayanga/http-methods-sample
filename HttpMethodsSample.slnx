@@ -1,7 +1,12 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Diagnostics.Api/Diagnostics.Api.csproj" />
+    <Project Path="src/Diagnostics.Application/Diagnostics.Application.csproj" />
+    <Project Path="src/Diagnostics.DTOs/Diagnostics.DTOs.csproj" />
     <Project Path="src/Inventory.Api/Inventory.Api.csproj" />
+    <Project Path="src/Inventory.Application/Inventory.Application.csproj" />
+    <Project Path="src/Inventory.DTOs/Inventory.DTOs.csproj" />
+    <Project Path="src/Inventory.Infrastructure/Inventory.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HttpMethodsSample.Tests/HttpMethodsSample.Tests.csproj" />

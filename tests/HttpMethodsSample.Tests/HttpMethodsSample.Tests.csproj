@@ -17,7 +17,9 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\..\src\Diagnostics.Api\Diagnostics.Api.csproj" />
+    <ProjectReference Include="..\..\src\Diagnostics.DTOs\Diagnostics.DTOs.csproj" />
     <ProjectReference Include="..\..\src\Inventory.Api\Inventory.Api.csproj" />
+    <ProjectReference Include="..\..\src\Inventory.DTOs\Inventory.DTOs.csproj" />
   </ItemGroup>
 
   <ItemGroup>

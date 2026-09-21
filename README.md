@@ -50,6 +50,84 @@ Start the Diagnostics API in another terminal:
 dotnet run --project src/Diagnostics.Api --urls http://localhost:5002
 ```
 
+## How endpoint classes are used
+
+The APIs keep endpoint mapping code in static extension classes. `Program.cs` stays small and calls those extension methods to register routes.
+
+Inventory API startup:
+
+```csharp
+using Inventory.Api;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddInventorySample();
+
+var app = builder.Build();
+
+app.MapInventoryEndpoints();
+
+app.Run();
+```
+
+The `InventoryEndpoints` class exposes the methods used by `Program.cs`:
+
+```csharp
+public static class InventoryEndpoints
+{
+    public static IServiceCollection AddInventorySample(this IServiceCollection services)
+    {
+        services.AddSingleton<InventoryStore>();
+        return services;
+    }
+
+    public static IEndpointRouteBuilder MapInventoryEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapGet("/inventory", (InventoryStore store) =>
+            Results.Ok(store.All()));
+
+        endpoints.MapPost("/inventory", (CreateInventoryItemRequest request, InventoryStore store) =>
+        {
+            var item = store.Create(request.Name, request.Quantity);
+            return Results.Created($"/inventory/{item.Id}", item);
+        });
+
+        return endpoints;
+    }
+}
+```
+
+Diagnostics API startup:
+
+```csharp
+using Diagnostics.Api;
+
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapDiagnosticsEndpoints();
+
+app.Run();
+```
+
+The `DiagnosticsEndpoints` class follows the same pattern:
+
+```csharp
+public static class DiagnosticsEndpoints
+{
+    public static IEndpointRouteBuilder MapDiagnosticsEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapGet("/diagnostics", () =>
+            Results.Ok(new { message = "Diagnostics API" }));
+
+        endpoints.MapMethods("/diagnostics/trace", ["TRACE"], (HttpContext context) =>
+            Results.Ok(new { context.Request.Method, context.Request.Path }));
+
+        return endpoints;
+    }
+}
+```
+
 ## HTTP method examples
 
 ### GET
@@ -68,6 +146,21 @@ curl http://localhost:5001/inventory
 curl http://localhost:5001/inventory/1
 ```
 
+How it is implemented:
+
+```csharp
+endpoints.MapGet(InventoryRoute, (InventoryStore store) =>
+    Results.Ok(store.All()));
+
+endpoints.MapGet(InventoryItemRoute, (int id, InventoryStore store) =>
+{
+    var item = store.Find(id);
+    return item is null
+        ? Results.NotFound()
+        : Results.Ok(item);
+});
+```
+
 ### POST
 
 Use `POST` when you want the server to create a new resource or process a command where the server decides the result URI or action.
@@ -82,6 +175,18 @@ How to call:
 curl -i -X POST http://localhost:5001/inventory \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Pencil\",\"quantity\":30}"
+```
+
+How it is implemented:
+
+```csharp
+endpoints.MapPost(InventoryRoute, (CreateInventoryItemRequest request, InventoryStore store, HttpContext context) =>
+{
+    var item = store.Create(request.Name.Trim(), request.Quantity);
+    var location = $"{context.Request.Scheme}://{context.Request.Host}/inventory/{item.Id}";
+
+    return Results.Created(location, item);
+});
 ```
 
 ### PUT
@@ -100,6 +205,17 @@ curl -i -X PUT http://localhost:5001/inventory/1 \
   -d "{\"name\":\"Marker\",\"quantity\":7}"
 ```
 
+How it is implemented:
+
+```csharp
+endpoints.MapPut(InventoryItemRoute, (int id, CreateInventoryItemRequest request, InventoryStore store) =>
+{
+    var item = store.Replace(id, request.Name.Trim(), request.Quantity);
+
+    return Results.Ok(item);
+});
+```
+
 ### PATCH
 
 Use `PATCH` when you want to update only part of a resource without sending the full replacement representation.
@@ -116,6 +232,19 @@ curl -i -X PATCH http://localhost:5001/inventory/1 \
   -d "{\"quantity\":25}"
 ```
 
+How it is implemented:
+
+```csharp
+endpoints.MapPatch(InventoryItemRoute, (int id, PatchInventoryItemRequest request, InventoryStore store) =>
+{
+    var item = store.Patch(id, request.Name?.Trim(), request.Quantity);
+
+    return item is null
+        ? Results.NotFound()
+        : Results.Ok(item);
+});
+```
+
 ### DELETE
 
 Use `DELETE` when you want to remove a resource identified by its URI.
@@ -130,6 +259,15 @@ How to call:
 curl -i -X DELETE http://localhost:5001/inventory/1
 ```
 
+How it is implemented:
+
+```csharp
+endpoints.MapDelete(InventoryItemRoute, (int id, InventoryStore store) =>
+    store.Delete(id)
+        ? Results.NoContent()
+        : Results.NotFound());
+```
+
 ### HEAD
 
 Use `HEAD` when you need the same headers you would get from `GET`, but without downloading the response body. It is useful for metadata checks, cache validation, and lightweight existence checks.
@@ -142,6 +280,23 @@ How to call:
 
 ```bash
 curl -I http://localhost:5001/inventory/1
+```
+
+How it is implemented:
+
+```csharp
+endpoints.MapMethods(InventoryItemRoute, ["HEAD"], (int id, InventoryStore store, HttpContext context) =>
+{
+    if (store.Find(id) is null)
+    {
+        return Results.NotFound();
+    }
+
+    context.Response.Headers.ContentType = "application/json";
+    context.Response.Headers.ETag = $"\"inventory-{id}\"";
+
+    return Results.Ok();
+});
 ```
 
 ### OPTIONS
@@ -162,6 +317,19 @@ curl -i -X OPTIONS http://localhost:5001/inventory/1
 curl -i -X OPTIONS http://localhost:5002/diagnostics
 ```
 
+How it is implemented:
+
+```csharp
+endpoints.MapMethods(InventoryRoute, ["OPTIONS"], () =>
+    Results.NoContent().WithHeader("Allow", "GET, POST, OPTIONS"));
+
+endpoints.MapMethods(InventoryItemRoute, ["OPTIONS"], () =>
+    Results.NoContent().WithHeader("Allow", "GET, PUT, PATCH, DELETE, HEAD, OPTIONS"));
+
+endpoints.MapMethods("/diagnostics", ["OPTIONS"], () =>
+    Results.NoContent().WithHeader("Allow", "GET, OPTIONS, TRACE, CONNECT"));
+```
+
 ### TRACE
 
 Use `TRACE` when diagnosing request routing because it echoes request metadata back to the caller. Many production systems disable it for security reasons. This sample redacts sensitive headers such as `Authorization`, `Cookie`, and `Proxy-Authorization`.
@@ -176,6 +344,25 @@ How to call:
 curl -i -X TRACE "http://localhost:5002/diagnostics/trace?demo=true" \
   -H "Authorization: Bearer secret" \
   -H "X-Demo: visible"
+```
+
+How it is implemented:
+
+```csharp
+endpoints.MapMethods("/diagnostics/trace", ["TRACE"], (HttpContext context) =>
+{
+    var headers = context.Request.Headers.ToDictionary(
+        header => header.Key,
+        header => SensitiveHeaders.Contains(header.Key) ? "[redacted]" : header.Value.ToString());
+
+    return Results.Ok(new TraceEcho(
+        context.Request.Method,
+        context.Request.Scheme,
+        context.Request.Host.ToString(),
+        context.Request.Path,
+        context.Request.QueryString.ToString(),
+        headers));
+});
 ```
 
 ### CONNECT
@@ -198,6 +385,16 @@ CI-friendly mirror call:
 
 ```bash
 curl -i -X POST http://localhost:5002/diagnostics/connect/example.com:443
+```
+
+How it is implemented:
+
+```csharp
+endpoints.MapMethods("/diagnostics/connect/{authority}", ["CONNECT", "POST"], (string authority) =>
+    Results.Ok(new ConnectDemo(
+        authority,
+        "CONNECT normally asks an HTTP proxy to open a tunnel. This sample acknowledges the request but does not create a network tunnel.",
+        false)));
 ```
 
 ## Method summary
