@@ -15,7 +15,7 @@ namespace HttpMethodsSample.Tests;
 public sealed class InventoryApiTests
 {
     [Fact]
-    public async Task GetListsSeedInventoryItems()
+    public async Task GetCollectionListsSeedInventoryItems()
     {
         await using var app = await TestApplication.StartInventoryAsync();
 
@@ -26,7 +26,17 @@ public sealed class InventoryApiTests
     }
 
     [Fact]
-    public async Task PostCreatesInventoryItem()
+    public async Task GetItemReturnsInventoryItemById()
+    {
+        await using var app = await TestApplication.StartInventoryAsync();
+
+        var item = await app.Client.GetFromJsonAsync<InventoryItem>("/inventory/1");
+
+        Assert.Equal(new InventoryItem(1, "Sample notebook", 12), item);
+    }
+
+    [Fact]
+    public async Task PostCollectionCreatesInventoryItem()
     {
         await using var app = await TestApplication.StartInventoryAsync();
 
@@ -41,7 +51,7 @@ public sealed class InventoryApiTests
     }
 
     [Fact]
-    public async Task PutReplacesInventoryItem()
+    public async Task PutItemReplacesInventoryItem()
     {
         await using var app = await TestApplication.StartInventoryAsync();
 
@@ -53,7 +63,7 @@ public sealed class InventoryApiTests
     }
 
     [Fact]
-    public async Task PatchPartiallyUpdatesInventoryItem()
+    public async Task PatchItemPartiallyUpdatesInventoryItem()
     {
         await using var app = await TestApplication.StartInventoryAsync();
 
@@ -66,7 +76,7 @@ public sealed class InventoryApiTests
     }
 
     [Fact]
-    public async Task DeleteRemovesInventoryItem()
+    public async Task DeleteItemRemovesInventoryItem()
     {
         await using var app = await TestApplication.StartInventoryAsync();
 
@@ -78,7 +88,7 @@ public sealed class InventoryApiTests
     }
 
     [Fact]
-    public async Task HeadReturnsHeadersWithoutBody()
+    public async Task HeadItemReturnsHeadersWithoutBody()
     {
         await using var app = await TestApplication.StartInventoryAsync();
         using var request = new HttpRequestMessage(HttpMethod.Head, "/inventory/1");
@@ -92,7 +102,19 @@ public sealed class InventoryApiTests
     }
 
     [Fact]
-    public async Task OptionsReturnsAllowedItemMethods()
+    public async Task OptionsCollectionReturnsAllowedCollectionMethods()
+    {
+        await using var app = await TestApplication.StartInventoryAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Options, "/inventory");
+
+        var response = await app.Client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal("GET, POST, OPTIONS", response.Content.Headers.Allow.ToString());
+    }
+
+    [Fact]
+    public async Task OptionsItemReturnsAllowedItemMethods()
     {
         await using var app = await TestApplication.StartInventoryAsync();
         using var request = new HttpRequestMessage(HttpMethod.Options, "/inventory/1");

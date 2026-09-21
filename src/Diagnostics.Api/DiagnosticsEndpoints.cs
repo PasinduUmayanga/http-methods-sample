@@ -20,15 +20,18 @@ public static class DiagnosticsEndpoints
             routes = new[] { "/diagnostics", "/diagnostics/trace", "/diagnostics/connect/{authority}" }
         }));
 
+        // GET returns a read-only overview of the diagnostic methods in this service.
         endpoints.MapGet("/diagnostics", () => Results.Ok(new
         {
             message = "Use this service to inspect HTTP metadata and learn about less common methods.",
             supportedMethods = Methods
         }));
 
+        // OPTIONS advertises the diagnostic methods supported by this endpoint.
         endpoints.MapMethods("/diagnostics", ["OPTIONS"], () =>
             Results.NoContent().WithHeader("Allow", string.Join(", ", Methods)));
 
+        // TRACE echoes request metadata for diagnostics while redacting sensitive headers.
         endpoints.MapMethods("/diagnostics/trace", ["TRACE"], (HttpContext context) =>
         {
             var headers = context.Request.Headers
@@ -46,6 +49,8 @@ public static class DiagnosticsEndpoints
                 headers));
         });
 
+        // CONNECT normally establishes proxy tunnels; this safe sample acknowledges the request only.
+        // POST mirrors the same response so regular clients and CI can test it without proxy tunneling.
         endpoints.MapMethods("/diagnostics/connect/{authority}", ["CONNECT", "POST"], (string authority) =>
             Results.Ok(CreateConnectDemo(authority)));
 
