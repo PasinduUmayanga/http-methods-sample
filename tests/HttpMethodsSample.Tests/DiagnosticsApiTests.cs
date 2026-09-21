@@ -8,7 +8,22 @@ namespace HttpMethodsSample.Tests;
 public sealed class DiagnosticsApiTests
 {
     [Fact]
-    public async Task OptionsReturnsSupportedDiagnosticsMethods()
+    public async Task GetDiagnosticsReturnsSupportedMethods()
+    {
+        await using var app = await TestApplication.StartDiagnosticsAsync();
+
+        var response = await app.Client.GetAsync("/diagnostics");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("GET", body);
+        Assert.Contains("OPTIONS", body);
+        Assert.Contains("TRACE", body);
+        Assert.Contains("CONNECT", body);
+    }
+
+    [Fact]
+    public async Task OptionsDiagnosticsReturnsSupportedDiagnosticsMethods()
     {
         await using var app = await TestApplication.StartDiagnosticsAsync();
         using var request = new HttpRequestMessage(HttpMethod.Options, "/diagnostics");
@@ -20,7 +35,7 @@ public sealed class DiagnosticsApiTests
     }
 
     [Fact]
-    public async Task TraceEchoesRequestMetadataAndRedactsSensitiveHeaders()
+    public async Task TraceDiagnosticsEchoesRequestMetadataAndRedactsSensitiveHeaders()
     {
         await using var app = await TestApplication.StartDiagnosticsAsync();
         using var request = new HttpRequestMessage(new HttpMethod("TRACE"), "/diagnostics/trace?demo=true");
@@ -40,7 +55,7 @@ public sealed class DiagnosticsApiTests
     }
 
     [Fact]
-    public async Task ConnectReturnsDemoResponseWithoutOpeningTunnel()
+    public async Task ConnectDiagnosticsReturnsDemoResponseWithoutOpeningTunnel()
     {
         await using var app = await TestApplication.StartDiagnosticsAsync();
         var response = await app.Client.PostAsync("/diagnostics/connect/example.com:443", null);
@@ -53,7 +68,7 @@ public sealed class DiagnosticsApiTests
     }
 
     [Fact]
-    public async Task ConnectRouteIsMappedForTheActualHttpMethod()
+    public async Task ConnectDiagnosticsRouteIsMappedForTheActualHttpMethod()
     {
         await using var app = await TestApplication.StartDiagnosticsAsync();
 
