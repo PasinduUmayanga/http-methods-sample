@@ -1,7 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
-using Diagnostics.Api;
-using Inventory.Api;
+using Diagnostics.Api.Api;
+using Inventory.Api.Api;
+using Inventory.DTOs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -148,6 +149,7 @@ internal static class TestApplication
         var builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddDiagnosticsSample();
 
         var app = builder.Build();
         app.MapDiagnosticsEndpoints();

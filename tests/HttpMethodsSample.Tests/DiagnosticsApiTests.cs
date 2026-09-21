@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using Diagnostics.Api;
+using Diagnostics.Api.Api;
+using Diagnostics.DTOs;
 using Microsoft.AspNetCore.Routing;
 
 namespace HttpMethodsSample.Tests;

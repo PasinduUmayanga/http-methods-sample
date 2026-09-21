@@ -1,4 +1,4 @@
-using Inventory.Api;
+using Inventory.Api.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 

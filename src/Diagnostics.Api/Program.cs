@@ -1,6 +1,9 @@
-using Diagnostics.Api;
+using Diagnostics.Api.Api;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDiagnosticsSample();
+
 var app = builder.Build();
 
 app.MapDiagnosticsEndpoints();
