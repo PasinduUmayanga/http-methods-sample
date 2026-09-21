@@ -5,6 +5,9 @@ namespace Inventory.Api;
 
 public static class InventoryEndpoints
 {
+    private const string InventoryRoute = "/inventory";
+    private const string InventoryItemRoute = $"{InventoryRoute}/{{id:int}}";
+
     private static readonly string[] ItemMethods = ["GET", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
     private static readonly string[] CollectionMethods = ["GET", "POST", "OPTIONS"];
 
@@ -20,15 +23,15 @@ public static class InventoryEndpoints
         {
             service = "Inventory API",
             description = "CRUD-style sample for GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS.",
-            routes = new[] { "/inventory", "/inventory/{id}" }
+            routes = new[] { InventoryRoute, "/inventory/{id}" }
         }));
 
         // GET reads the current collection without changing server state.
-        endpoints.MapGet("/inventory", (InventoryStore store) =>
+        endpoints.MapGet(InventoryRoute, (InventoryStore store) =>
             Results.Ok(store.All()));
 
         // POST creates a new inventory item and returns 201 Created with its Location.
-        endpoints.MapPost("/inventory", (CreateInventoryItemRequest request, InventoryStore store, HttpContext context) =>
+        endpoints.MapPost(InventoryRoute, (CreateInventoryItemRequest request, InventoryStore store, HttpContext context) =>
         {
             if (string.IsNullOrWhiteSpace(request.Name))
             {
@@ -41,13 +44,13 @@ public static class InventoryEndpoints
         });
 
         // OPTIONS advertises which methods the collection endpoint supports.
-        endpoints.MapMethods("/inventory", ["OPTIONS"], () =>
+        endpoints.MapMethods(InventoryRoute, ["OPTIONS"], () =>
         {
             return Results.NoContent().WithHeader("Allow", string.Join(", ", CollectionMethods));
         });
 
         // GET reads one resource by identifier and returns 404 when it is missing.
-        endpoints.MapGet("/inventory/{id:int}", Results<Ok<InventoryItem>, NotFound<ErrorResponse>> (int id, InventoryStore store) =>
+        endpoints.MapGet(InventoryItemRoute, Results<Ok<InventoryItem>, NotFound<ErrorResponse>> (int id, InventoryStore store) =>
         {
             var item = store.Find(id);
             return item is null
@@ -56,7 +59,7 @@ public static class InventoryEndpoints
         });
 
         // PUT replaces the full resource at this URI, creating it when needed.
-        endpoints.MapPut("/inventory/{id:int}", (int id, CreateInventoryItemRequest request, InventoryStore store) =>
+        endpoints.MapPut(InventoryItemRoute, (int id, CreateInventoryItemRequest request, InventoryStore store) =>
         {
             if (string.IsNullOrWhiteSpace(request.Name))
             {
@@ -68,7 +71,7 @@ public static class InventoryEndpoints
         });
 
         // PATCH changes only the fields supplied in the request body.
-        endpoints.MapPatch("/inventory/{id:int}", Results<Ok<InventoryItem>, BadRequest<ErrorResponse>, NotFound<ErrorResponse>> (int id, PatchInventoryItemRequest request, InventoryStore store) =>
+        endpoints.MapPatch(InventoryItemRoute, Results<Ok<InventoryItem>, BadRequest<ErrorResponse>, NotFound<ErrorResponse>> (int id, PatchInventoryItemRequest request, InventoryStore store) =>
         {
             if (request.Name is not null && string.IsNullOrWhiteSpace(request.Name))
             {
@@ -82,13 +85,13 @@ public static class InventoryEndpoints
         });
 
         // DELETE removes the resource and returns 204 when the deletion succeeds.
-        endpoints.MapDelete("/inventory/{id:int}", (int id, InventoryStore store) =>
+        endpoints.MapDelete(InventoryItemRoute, (int id, InventoryStore store) =>
             store.Delete(id)
                 ? Results.NoContent()
                 : Results.NotFound(new ErrorResponse($"Inventory item {id} was not found.")));
 
         // HEAD returns metadata for the resource without writing a response body.
-        endpoints.MapMethods("/inventory/{id:int}", ["HEAD"], (int id, InventoryStore store, HttpContext context) =>
+        endpoints.MapMethods(InventoryItemRoute, ["HEAD"], (int id, InventoryStore store, HttpContext context) =>
         {
             if (store.Find(id) is null)
             {
@@ -101,7 +104,7 @@ public static class InventoryEndpoints
         });
 
         // OPTIONS advertises which methods an individual item endpoint supports.
-        endpoints.MapMethods("/inventory/{id:int}", ["OPTIONS"], () =>
+        endpoints.MapMethods(InventoryItemRoute, ["OPTIONS"], () =>
         {
             return Results.NoContent().WithHeader("Allow", string.Join(", ", ItemMethods));
         });
