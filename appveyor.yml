@@ -1,0 +1,27 @@
+version: 1.0.{build}
+image: Visual Studio 2026
+
+configuration: Release
+
+environment:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_XMLDOC_MODE: skip
+
+cache:
+  - '%USERPROFILE%\.nuget\packages -> **\*.csproj, Directory.Build.props'
+
+before_build:
+  - ps: dotnet --info
+  - ps: dotnet restore HttpMethodsSample.slnx --ignore-failed-sources /p:NuGetAudit=false
+
+build_script:
+  - ps: dotnet build HttpMethodsSample.slnx --configuration $env:CONFIGURATION --no-restore
+
+test_script:
+  - ps: New-Item -ItemType Directory -Force -Path TestResults | Out-Null
+  - ps: dotnet test tests/HttpMethodsSample.Tests/HttpMethodsSample.Tests.csproj --configuration $env:CONFIGURATION --no-restore --logger "trx;LogFileName=http-methods-sample.trx" --results-directory TestResults
+
+after_test:
+  - ps: appveyor PushTestResults TestResults\http-methods-sample.trx -Type mstest
+  - ps: appveyor PushArtifact TestResults\http-methods-sample.trx

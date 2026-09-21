@@ -1,0 +1,29 @@
+bin/
+obj/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+*.user
+*.suo
+*.rsuser
+.vs/
+.vscode/
+.idea/
+*.userosscache
+*.sln.docstates
+
+# Build and package artifacts
+artifacts/
+*.nupkg
+*.snupkg
+
+# Logs and local environment
+*.log
+.env
+.env.*
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
