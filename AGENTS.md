@@ -6,9 +6,10 @@ This repository is an educational .NET 10 LTS sample for demonstrating HTTP meth
 
 ## Layout
 
-- `src/Inventory.Api`: CRUD-oriented HTTP method examples.
-- `src/Diagnostics.Api`: protocol-oriented method examples for `OPTIONS`, `TRACE`, and `CONNECT`.
-- `tests/HttpMethodsSample.Tests`: xUnit integration tests that start the APIs on temporary local ports.
+- `services/inventory-service/src`: Inventory onion-architecture projects.
+- `services/inventory-service/tests`: Inventory API integration tests.
+- `services/diagnostics-service/src`: Diagnostics onion-architecture projects.
+- `services/diagnostics-service/tests`: Diagnostics API integration tests.
 - `Directory.Build.props`: shared MSBuild settings, including disabled NuGet audit network calls for deterministic restricted builds.
 
 ## Commands
@@ -16,14 +17,15 @@ This repository is an educational .NET 10 LTS sample for demonstrating HTTP meth
 ```bash
 dotnet restore HttpMethodsSample.slnx
 dotnet build HttpMethodsSample.slnx --configuration Release --no-restore
-dotnet test tests/HttpMethodsSample.Tests/HttpMethodsSample.Tests.csproj --configuration Release --no-restore
+dotnet test services/inventory-service/tests/Inventory.Tests/Inventory.Tests.csproj --configuration Release --no-restore
+dotnet test services/diagnostics-service/tests/Diagnostics.Tests/Diagnostics.Tests.csproj --configuration Release --no-restore
 ```
 
 Run services locally:
 
 ```bash
-dotnet run --project src/Inventory.Api --urls http://localhost:5001
-dotnet run --project src/Diagnostics.Api --urls http://localhost:5002
+dotnet run --project services/inventory-service/src/Inventory.Api --urls http://localhost:5001
+dotnet run --project services/diagnostics-service/src/Diagnostics.Api --urls http://localhost:5002
 ```
 
 ## Conventions

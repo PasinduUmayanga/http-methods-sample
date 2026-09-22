@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diagnostics.Application\Diagnostics.Application.csproj" />
+    <ProjectReference Include="..\Diagnostics.Domain\Diagnostics.Domain.csproj" />
+    <ProjectReference Include="..\Diagnostics.DTOs\Diagnostics.DTOs.csproj" />
+    <ProjectReference Include="..\Diagnostics.Infrastructure\Diagnostics.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

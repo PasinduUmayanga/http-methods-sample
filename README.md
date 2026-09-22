@@ -1,3 +1,5 @@
+![HTTP Methods Microservices Sample banner](assets/http-methods-banner.png)
+
 # HTTP Methods Sample
 
 [![Build status](https://ci.appveyor.com/api/projects/status/fcrmhfsts7e1wkcr?svg=true)](https://ci.appveyor.com/project/Mahadenamuththa/http-methods-sample)
@@ -7,169 +9,230 @@
 ![Tests](https://img.shields.io/badge/tests-xUnit-5E2D91)
 ![Platform](https://img.shields.io/badge/platform-cross--platform-blue)
 
-This repository contains a .NET 10 LTS microservices sample that demonstrates common and less common HTTP methods with small ASP.NET Core Minimal APIs.
+A .NET 10 LTS microservices sample that demonstrates how HTTP methods are used in ASP.NET Core Minimal APIs.
 
-## Services
+## Table of Contents
 
-| Service | Purpose | Default local command |
+- [What the Banner Shows](#what-the-banner-shows)
+- [Microservices](#microservices)
+- [Solution Structure](#solution-structure)
+- [Requirements](#requirements)
+- [Build and Test](#build-and-test)
+- [Run the APIs](#run-the-apis)
+- [How Requests Flow](#how-requests-flow)
+- [HTTP Method Flow Image](#http-method-flow-image)
+- [Method-Specific Flow Diagrams](#method-specific-flow-diagrams)
+- [HTTP Method Guide](#http-method-guide)
+- [Method Summary](#method-summary)
+
+## What the Banner Shows
+
+The banner is a visual overview of how an HTTP request travels through a microservice system:
+
+| Banner element | Meaning in this project |
+| --- | --- |
+| HTTP method chips | The sample demonstrates `GET`, `PUT`, `POST`, `DELETE`, `PATCH`, `HEAD`, `CONNECT`, `OPTIONS`, and `TRACE`. |
+| Client/laptop | A caller such as `curl`, a browser, a frontend app, or another service. |
+| HTTP request arrow | The incoming API call that carries a method, route, headers, and optional body. |
+| API gateway shape | The ASP.NET Core API host where routes are mapped. |
+| Service boxes | Microservice boundaries such as Inventory and Diagnostics. |
+| Database icons | Infrastructure or persistence. This sample uses in-memory storage for simplicity. |
+| HTTP response arrow | The response status, headers, and optional body returned to the caller. |
+
+## Microservices
+
+| Microservice | Responsibility | Methods demonstrated |
 | --- | --- | --- |
-| `Inventory.Api` | CRUD-style examples for `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`. | `dotnet run --project src/Inventory.Api` |
-| `Diagnostics.Api` | Protocol examples for `OPTIONS`, `TRACE`, and a safe `CONNECT` simulation. | `dotnet run --project src/Diagnostics.Api` |
+| `Inventory.Api` | CRUD-style resource operations for inventory items. | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS` |
+| `Diagnostics.Api` | Protocol and diagnostic method examples. | `GET`, `OPTIONS`, `TRACE`, `CONNECT` |
+
+## Solution Structure
+
+The sample uses separate projects to show a simple microservice layering style.
+
+```text
+services/
+  inventory-service/
+    src/
+      Inventory.Api/
+      Inventory.Application/
+      Inventory.Domain/
+      Inventory.DTOs/
+      Inventory.Infrastructure/
+    tests/
+      Inventory.Tests/
+
+  diagnostics-service/
+    src/
+      Diagnostics.Api/
+      Diagnostics.Application/
+      Diagnostics.Domain/
+      Diagnostics.DTOs/
+      Diagnostics.Infrastructure/
+    tests/
+      Diagnostics.Tests/
+```
+
+Dependency direction:
+
+```text
+API -> Application -> Infrastructure
+API -> DTOs
+Application -> DTOs
+Infrastructure -> DTOs
+```
 
 ## Requirements
 
 - .NET 10 SDK
 
-Check your SDK with:
-
 ```bash
 dotnet --info
 ```
 
-## Build and test
+## Build and Test
 
 ```bash
 dotnet restore HttpMethodsSample.slnx
 dotnet build HttpMethodsSample.slnx --configuration Release --no-restore
-dotnet test tests/HttpMethodsSample.Tests/HttpMethodsSample.Tests.csproj --configuration Release --no-restore
+dotnet test services/inventory-service/tests/Inventory.Tests/Inventory.Tests.csproj --configuration Release --no-restore
+dotnet test services/diagnostics-service/tests/Diagnostics.Tests/Diagnostics.Tests.csproj --configuration Release --no-restore
 ```
 
 `Directory.Build.props` disables NuGet audit network calls so the sample builds cleanly in offline or restricted CI environments.
 
-## Run the sample APIs
+## Run the APIs
 
-Start the Inventory API in one terminal:
-
-```bash
-dotnet run --project src/Inventory.Api --urls http://localhost:5001
-```
-
-Start the Diagnostics API in another terminal:
+Start the Inventory API:
 
 ```bash
-dotnet run --project src/Diagnostics.Api --urls http://localhost:5002
+dotnet run --project services/inventory-service/src/Inventory.Api --urls http://localhost:5001
 ```
 
-## How endpoint classes are used
+Start the Diagnostics API:
 
-The APIs keep endpoint mapping code in static extension classes. `Program.cs` stays small and calls those extension methods to register routes.
+```bash
+dotnet run --project services/diagnostics-service/src/Diagnostics.Api --urls http://localhost:5002
+```
 
-Inventory API startup:
+## How Requests Flow
+
+Each API call follows the same shape shown in the banner.
+
+```text
+Client
+  -> HTTP method + route + headers + optional body
+  -> *.Api project
+  -> Api/*Endpoints.cs maps the route
+  -> Api/*Handlers.cs handles HTTP details
+  -> Application/*Service.cs runs the use case
+  -> Infrastructure, when storage is needed
+  -> HTTP status + headers + optional body
+  -> Client
+```
+
+Example from the Inventory API:
 
 ```csharp
-using Inventory.Api;
-
-var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddInventorySample();
 
 var app = builder.Build();
 
 app.MapInventoryEndpoints();
-
-app.Run();
 ```
 
-The `InventoryEndpoints` class exposes the methods used by `Program.cs`:
+## HTTP Method Flow Image
 
-```csharp
-public static class InventoryEndpoints
-{
-    public static IServiceCollection AddInventorySample(this IServiceCollection services)
-    {
-        services.AddSingleton<InventoryStore>();
-        return services;
-    }
+![How API calls work for each HTTP method](assets/http-methods-api-flow.png)
 
-    public static IEndpointRouteBuilder MapInventoryEndpoints(this IEndpointRouteBuilder endpoints)
-    {
-        endpoints.MapGet("/inventory", (InventoryStore store) =>
-            Results.Ok(store.All()));
+The image shows that every HTTP method follows the same high-level API path:
 
-        endpoints.MapPost("/inventory", (CreateInventoryItemRequest request, InventoryStore store) =>
-        {
-            var item = store.Create(request.Name, request.Quantity);
-            return Results.Created($"/inventory/{item.Id}", item);
-        });
-
-        return endpoints;
-    }
-}
+```text
+Client -> API Gateway / API Host -> Application Service -> Response
 ```
 
-Diagnostics API startup:
+The method changes the intent of the request:
 
-```csharp
-using Diagnostics.Api;
+| Method | Image meaning | API call behavior |
+| --- | --- | --- |
+| `GET` | Read | Client asks the API to retrieve a resource. |
+| `POST` | Create | Client sends a body so the service can create a new resource. |
+| `PUT` | Replace | Client sends a full representation to replace or upsert a known resource. |
+| `PATCH` | Partial update | Client sends only the fields that should change. |
+| `DELETE` | Remove | Client asks the service to delete the resource at the URI. |
+| `HEAD` | Headers only | Client asks for metadata without receiving the response body. |
+| `OPTIONS` | Allowed methods | Client asks which methods the endpoint supports. |
+| `TRACE` | Echo diagnostics | Client asks the diagnostics service to echo sanitized request metadata. |
+| `CONNECT` | Tunnel request | Client asks for a proxy-style tunnel; this sample returns a safe demo response. |
 
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+## Method-Specific Flow Diagrams
 
-app.MapDiagnosticsEndpoints();
+These diagrams show the request and response journey for each HTTP method demonstrated by the sample APIs.
 
-app.Run();
-```
+### GET Flow
 
-The `DiagnosticsEndpoints` class follows the same pattern:
+![GET API request and response flow](assets/get.png)
 
-```csharp
-public static class DiagnosticsEndpoints
-{
-    public static IEndpointRouteBuilder MapDiagnosticsEndpoints(this IEndpointRouteBuilder endpoints)
-    {
-        endpoints.MapGet("/diagnostics", () =>
-            Results.Ok(new { message = "Diagnostics API" }));
+### POST Flow
 
-        endpoints.MapMethods("/diagnostics/trace", ["TRACE"], (HttpContext context) =>
-            Results.Ok(new { context.Request.Method, context.Request.Path }));
+![POST API request and response flow](assets/post.png)
 
-        return endpoints;
-    }
-}
-```
+### PUT Flow
 
-## HTTP method examples
+![PUT API request and response flow](assets/put.png)
+
+### PATCH Flow
+
+![PATCH API request and response flow](assets/patch.png)
+
+### DELETE Flow
+
+![DELETE API request and response flow](assets/delete.png)
+
+### HEAD Flow
+
+![HEAD API request and response flow](assets/head.png)
+
+### OPTIONS Flow
+
+![OPTIONS API request and response flow](assets/options.png)
+
+### TRACE Flow
+
+![TRACE API request and response flow](assets/trace.png)
+
+### CONNECT Flow
+
+![CONNECT API request and response flow](assets/connect.png)
+
+## HTTP Method Guide
 
 ### GET
 
-Use `GET` when you want to read a resource without changing server state. It is the normal method for fetching lists, details pages, and lookup data.
+Use `GET` to read a resource without changing server state.
 
-Sample endpoints:
-
-- `GET /inventory`
-- `GET /inventory/{id}`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoints | `GET /inventory`, `GET /inventory/{id}` |
+| Request body | No |
+| Successful response | `200 OK` with JSON |
+| Common use | Lists, detail pages, lookups |
 
 ```bash
 curl http://localhost:5001/inventory
 curl http://localhost:5001/inventory/1
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapGet(InventoryRoute, (InventoryStore store) =>
-    Results.Ok(store.All()));
-
-endpoints.MapGet(InventoryItemRoute, (int id, InventoryStore store) =>
-{
-    var item = store.Find(id);
-    return item is null
-        ? Results.NotFound()
-        : Results.Ok(item);
-});
-```
-
 ### POST
 
-Use `POST` when you want the server to create a new resource or process a command where the server decides the result URI or action.
+Use `POST` when the server should create a resource or process a command.
 
-Sample endpoint:
-
-- `POST /inventory`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoint | `POST /inventory` |
+| Request body | JSON item input |
+| Successful response | `201 Created` with `Location` header |
+| Common use | Create resources, submit commands |
 
 ```bash
 curl -i -X POST http://localhost:5001/inventory \
@@ -177,27 +240,16 @@ curl -i -X POST http://localhost:5001/inventory \
   -d "{\"name\":\"Pencil\",\"quantity\":30}"
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapPost(InventoryRoute, (CreateInventoryItemRequest request, InventoryStore store, HttpContext context) =>
-{
-    var item = store.Create(request.Name.Trim(), request.Quantity);
-    var location = $"{context.Request.Scheme}://{context.Request.Host}/inventory/{item.Id}";
-
-    return Results.Created(location, item);
-});
-```
-
 ### PUT
 
-Use `PUT` when you want to fully replace a resource at a known URI. In this sample it also works as an upsert, meaning the item is created if it does not already exist.
+Use `PUT` to fully replace a resource at a known URI.
 
-Sample endpoint:
-
-- `PUT /inventory/{id}`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoint | `PUT /inventory/{id}` |
+| Request body | Full JSON replacement |
+| Successful response | `200 OK` with updated JSON |
+| Common use | Replace or upsert a known resource |
 
 ```bash
 curl -i -X PUT http://localhost:5001/inventory/1 \
@@ -205,26 +257,16 @@ curl -i -X PUT http://localhost:5001/inventory/1 \
   -d "{\"name\":\"Marker\",\"quantity\":7}"
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapPut(InventoryItemRoute, (int id, CreateInventoryItemRequest request, InventoryStore store) =>
-{
-    var item = store.Replace(id, request.Name.Trim(), request.Quantity);
-
-    return Results.Ok(item);
-});
-```
-
 ### PATCH
 
-Use `PATCH` when you want to update only part of a resource without sending the full replacement representation.
+Use `PATCH` to update only part of a resource.
 
-Sample endpoint:
-
-- `PATCH /inventory/{id}`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoint | `PATCH /inventory/{id}` |
+| Request body | Partial JSON update |
+| Successful response | `200 OK` with updated JSON |
+| Common use | Edit one or two fields without replacing the whole resource |
 
 ```bash
 curl -i -X PATCH http://localhost:5001/inventory/1 \
@@ -232,84 +274,46 @@ curl -i -X PATCH http://localhost:5001/inventory/1 \
   -d "{\"quantity\":25}"
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapPatch(InventoryItemRoute, (int id, PatchInventoryItemRequest request, InventoryStore store) =>
-{
-    var item = store.Patch(id, request.Name?.Trim(), request.Quantity);
-
-    return item is null
-        ? Results.NotFound()
-        : Results.Ok(item);
-});
-```
-
 ### DELETE
 
-Use `DELETE` when you want to remove a resource identified by its URI.
+Use `DELETE` to remove a resource.
 
-Sample endpoint:
-
-- `DELETE /inventory/{id}`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoint | `DELETE /inventory/{id}` |
+| Request body | No |
+| Successful response | `204 No Content` |
+| Common use | Remove a resource by URI |
 
 ```bash
 curl -i -X DELETE http://localhost:5001/inventory/1
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapDelete(InventoryItemRoute, (int id, InventoryStore store) =>
-    store.Delete(id)
-        ? Results.NoContent()
-        : Results.NotFound());
-```
-
 ### HEAD
 
-Use `HEAD` when you need the same headers you would get from `GET`, but without downloading the response body. It is useful for metadata checks, cache validation, and lightweight existence checks.
+Use `HEAD` to get the same headers as `GET` without downloading the body.
 
-Sample endpoint:
-
-- `HEAD /inventory/{id}`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoint | `HEAD /inventory/{id}` |
+| Request body | No |
+| Successful response | `200 OK` with headers only |
+| Common use | Metadata, existence checks, cache validation |
 
 ```bash
 curl -I http://localhost:5001/inventory/1
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapMethods(InventoryItemRoute, ["HEAD"], (int id, InventoryStore store, HttpContext context) =>
-{
-    if (store.Find(id) is null)
-    {
-        return Results.NotFound();
-    }
-
-    context.Response.Headers.ContentType = "application/json";
-    context.Response.Headers.ETag = $"\"inventory-{id}\"";
-
-    return Results.Ok();
-});
-```
-
 ### OPTIONS
 
-Use `OPTIONS` when you want to discover which HTTP methods an endpoint supports. APIs often return an `Allow` header in the response.
+Use `OPTIONS` to discover which methods an endpoint supports.
 
-Sample endpoints:
-
-- `OPTIONS /inventory`
-- `OPTIONS /inventory/{id}`
-- `OPTIONS /diagnostics`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoints | `OPTIONS /inventory`, `OPTIONS /inventory/{id}`, `OPTIONS /diagnostics` |
+| Request body | No |
+| Successful response | `204 No Content` with `Allow` header |
+| Common use | Capability discovery, CORS/preflight style checks |
 
 ```bash
 curl -i -X OPTIONS http://localhost:5001/inventory
@@ -317,28 +321,16 @@ curl -i -X OPTIONS http://localhost:5001/inventory/1
 curl -i -X OPTIONS http://localhost:5002/diagnostics
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapMethods(InventoryRoute, ["OPTIONS"], () =>
-    Results.NoContent().WithHeader("Allow", "GET, POST, OPTIONS"));
-
-endpoints.MapMethods(InventoryItemRoute, ["OPTIONS"], () =>
-    Results.NoContent().WithHeader("Allow", "GET, PUT, PATCH, DELETE, HEAD, OPTIONS"));
-
-endpoints.MapMethods("/diagnostics", ["OPTIONS"], () =>
-    Results.NoContent().WithHeader("Allow", "GET, OPTIONS, TRACE, CONNECT"));
-```
-
 ### TRACE
 
-Use `TRACE` when diagnosing request routing because it echoes request metadata back to the caller. Many production systems disable it for security reasons. This sample redacts sensitive headers such as `Authorization`, `Cookie`, and `Proxy-Authorization`.
+Use `TRACE` for diagnostics because it echoes request metadata. Many production systems disable it for security reasons.
 
-Sample endpoint:
-
-- `TRACE /diagnostics/trace`
-
-How to call:
+| Item | Details |
+| --- | --- |
+| Sample endpoint | `TRACE /diagnostics/trace` |
+| Request body | Not needed |
+| Successful response | `200 OK` with sanitized echo JSON |
+| Common use | Debug request routing and headers |
 
 ```bash
 curl -i -X TRACE "http://localhost:5002/diagnostics/trace?demo=true" \
@@ -346,67 +338,39 @@ curl -i -X TRACE "http://localhost:5002/diagnostics/trace?demo=true" \
   -H "X-Demo: visible"
 ```
 
-How it is implemented:
-
-```csharp
-endpoints.MapMethods("/diagnostics/trace", ["TRACE"], (HttpContext context) =>
-{
-    var headers = context.Request.Headers.ToDictionary(
-        header => header.Key,
-        header => SensitiveHeaders.Contains(header.Key) ? "[redacted]" : header.Value.ToString());
-
-    return Results.Ok(new TraceEcho(
-        context.Request.Method,
-        context.Request.Scheme,
-        context.Request.Host.ToString(),
-        context.Request.Path,
-        context.Request.QueryString.ToString(),
-        headers));
-});
-```
+The sample redacts sensitive headers such as `Authorization`, `Cookie`, and `Proxy-Authorization`.
 
 ### CONNECT
 
-Use `CONNECT` when an HTTP proxy needs to open a tunnel to another server, commonly for HTTPS proxying. Normal application APIs rarely use it directly. This project demonstrates the method safely: the endpoint acknowledges the request but does not create a real tunnel.
+Use `CONNECT` when an HTTP proxy needs to open a tunnel to another server, commonly for HTTPS proxying.
 
-Sample endpoint:
-
-- `CONNECT /diagnostics/connect/{authority}`
-
-How to call the real method:
+| Item | Details |
+| --- | --- |
+| Sample endpoint | `CONNECT /diagnostics/connect/{authority}` |
+| Request body | No |
+| Successful response | `200 OK` demo response |
+| Common use | Proxy tunneling |
 
 ```bash
 curl -i -X CONNECT http://localhost:5002/diagnostics/connect/example.com:443
 ```
 
-Some local clients and servers apply special `CONNECT` handling before normal routing. For day-to-day testing and CI, the sample exposes the same safe demo response through `POST` while still mapping the real `CONNECT` method.
-
-CI-friendly mirror call:
+Some local clients and servers apply special `CONNECT` handling before normal routing. For day-to-day testing and CI, this sample exposes the same safe demo response through `POST` while still mapping the real `CONNECT` method.
 
 ```bash
 curl -i -X POST http://localhost:5002/diagnostics/connect/example.com:443
 ```
 
-How it is implemented:
+## Method Summary
 
-```csharp
-endpoints.MapMethods("/diagnostics/connect/{authority}", ["CONNECT", "POST"], (string authority) =>
-    Results.Ok(new ConnectDemo(
-        authority,
-        "CONNECT normally asks an HTTP proxy to open a tunnel. This sample acknowledges the request but does not create a network tunnel.",
-        false)));
-```
-
-## Method summary
-
-| Method | Typical use | Sample endpoint |
-| --- | --- | --- |
-| `GET` | Read resources. | `GET /inventory`, `GET /inventory/{id}` |
-| `POST` | Create a resource or submit a command. | `POST /inventory` |
-| `PUT` | Replace or upsert a resource. | `PUT /inventory/{id}` |
-| `PATCH` | Partially update a resource. | `PATCH /inventory/{id}` |
-| `DELETE` | Remove a resource. | `DELETE /inventory/{id}` |
-| `HEAD` | Read response headers without a body. | `HEAD /inventory/{id}` |
-| `OPTIONS` | Discover allowed methods. | `OPTIONS /inventory`, `OPTIONS /diagnostics` |
-| `TRACE` | Echo request metadata for diagnostics. | `TRACE /diagnostics/trace` |
-| `CONNECT` | Request a proxy tunnel. | `CONNECT /diagnostics/connect/{authority}` |
+| Method | Safe by convention | Idempotent by convention | Request body usually used | This sample demonstrates |
+| --- | --- | --- | --- | --- |
+| `GET` | Yes | Yes | No | Reading inventory resources |
+| `POST` | No | No | Yes | Creating inventory resources |
+| `PUT` | No | Yes | Yes | Replacing/upserting inventory resources |
+| `PATCH` | No | Usually no | Yes | Partially updating inventory resources |
+| `DELETE` | No | Yes | No | Removing inventory resources |
+| `HEAD` | Yes | Yes | No | Reading headers without a body |
+| `OPTIONS` | Yes | Yes | No | Returning supported methods with `Allow` |
+| `TRACE` | Yes | Yes | Usually no | Echoing sanitized request metadata |
+| `CONNECT` | No | No | No | Demonstrating a safe proxy tunnel acknowledgement |

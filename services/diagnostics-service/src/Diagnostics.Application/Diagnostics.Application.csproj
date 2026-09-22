@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\Diagnostics.Domain\Diagnostics.Domain.csproj" />
+    <ProjectReference Include="..\Diagnostics.DTOs\Diagnostics.DTOs.csproj" />
+  </ItemGroup>
+
+</Project>

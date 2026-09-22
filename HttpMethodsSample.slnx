@@ -1,14 +1,25 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Diagnostics.Api/Diagnostics.Api.csproj" />
-    <Project Path="src/Diagnostics.Application/Diagnostics.Application.csproj" />
-    <Project Path="src/Diagnostics.DTOs/Diagnostics.DTOs.csproj" />
-    <Project Path="src/Inventory.Api/Inventory.Api.csproj" />
-    <Project Path="src/Inventory.Application/Inventory.Application.csproj" />
-    <Project Path="src/Inventory.DTOs/Inventory.DTOs.csproj" />
-    <Project Path="src/Inventory.Infrastructure/Inventory.Infrastructure.csproj" />
+  <Folder Name="/services/" />
+  <Folder Name="/services/diagnostics-service/" />
+  <Folder Name="/services/diagnostics-service/src/">
+    <Project Path="services/diagnostics-service/src/Diagnostics.Api/Diagnostics.Api.csproj" />
+    <Project Path="services/diagnostics-service/src/Diagnostics.Application/Diagnostics.Application.csproj" />
+    <Project Path="services/diagnostics-service/src/Diagnostics.Domain/Diagnostics.Domain.csproj" />
+    <Project Path="services/diagnostics-service/src/Diagnostics.DTOs/Diagnostics.DTOs.csproj" />
+    <Project Path="services/diagnostics-service/src/Diagnostics.Infrastructure/Diagnostics.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/HttpMethodsSample.Tests/HttpMethodsSample.Tests.csproj" />
+  <Folder Name="/services/diagnostics-service/tests/">
+    <Project Path="services/diagnostics-service/tests/Diagnostics.Tests/Diagnostics.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/inventory-service/" />
+  <Folder Name="/services/inventory-service/src/">
+    <Project Path="services/inventory-service/src/Inventory.Api/Inventory.Api.csproj" />
+    <Project Path="services/inventory-service/src/Inventory.Application/Inventory.Application.csproj" />
+    <Project Path="services/inventory-service/src/Inventory.Domain/Inventory.Domain.csproj" />
+    <Project Path="services/inventory-service/src/Inventory.DTOs/Inventory.DTOs.csproj" />
+    <Project Path="services/inventory-service/src/Inventory.Infrastructure/Inventory.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/inventory-service/tests/">
+    <Project Path="services/inventory-service/tests/Inventory.Tests/Inventory.Tests.csproj" />
   </Folder>
 </Solution>

@@ -20,8 +20,11 @@ build_script:
 
 test_script:
   - ps: New-Item -ItemType Directory -Force -Path TestResults | Out-Null
-  - ps: dotnet test tests/HttpMethodsSample.Tests/HttpMethodsSample.Tests.csproj --configuration $env:CONFIGURATION --no-restore --logger "trx;LogFileName=http-methods-sample.trx" --results-directory TestResults
+  - ps: dotnet test services/inventory-service/tests/Inventory.Tests/Inventory.Tests.csproj --configuration $env:CONFIGURATION --no-restore --logger "trx;LogFileName=inventory-tests.trx" --results-directory TestResults
+  - ps: dotnet test services/diagnostics-service/tests/Diagnostics.Tests/Diagnostics.Tests.csproj --configuration $env:CONFIGURATION --no-restore --logger "trx;LogFileName=diagnostics-tests.trx" --results-directory TestResults
 
 after_test:
-  - ps: appveyor PushTestResults TestResults\http-methods-sample.trx -Type mstest
-  - ps: appveyor PushArtifact TestResults\http-methods-sample.trx
+  - ps: appveyor PushTestResults TestResults\inventory-tests.trx -Type mstest
+  - ps: appveyor PushTestResults TestResults\diagnostics-tests.trx -Type mstest
+  - ps: appveyor PushArtifact TestResults\inventory-tests.trx
+  - ps: appveyor PushArtifact TestResults\diagnostics-tests.trx
